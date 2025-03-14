@@ -1,0 +1,23 @@
+[package]
+name = "hacspec-ipp"
+version = "0.1.0"
+authors = ["Rasmus Kirk <mail@rasmuskirk.com>"]
+edition = "2018"
+
+[lib]
+path = "src/ipp.rs"
+
+[dependencies]
+hacspec-lib = { path = "../../lib" }
+hacspec-ristretto = { path = "../ristretto" }
+hacspec-merlin = { path = "../merlin" }
+
+[dev-dependencies]
+hacspec-dev = { path = "../../utils/dev" }
+rand_core = { version = "0.6", default-features = false, features = ["alloc"] }
+curve25519-dalek-ng = "4"
+sha3 = "0.9.1"
+merlin = "3"
+bulletproofs = { path = "../../../bulletproofs" }
+quickcheck = "1"
+rand = "0.8"

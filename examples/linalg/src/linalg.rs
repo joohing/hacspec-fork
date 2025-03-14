@@ -1,105 +1,55 @@
-/*
-* A hacspec library implementation modelled on the nalgebra rust library.
-* Functions are modelled and tested against their nalgebra counterparts
-* using Quickcheck.
-
-* This ensures, with reasonable probability, that the
-* these functions and the nalgebra functions works identically. With this
-* assumption, properties about the nalgebra library can be proven in
-* hacspec target languages, and allows hacspec implementations to use
-* common linear algebra operations.
-*
-* Each matrix consists of a pair of dimensions and a Seq fx:
-* ((2,3), [0,1,2,3,4,5,6])
-* represents a 2x3 matrix
-*
-* Only matrices are supported, vectors can be modelled as dimension (x,1)
-* matrices. Note that, unlike the nalgebra library, matrices are
-* represented row-by-row instead of column-by-column.
-*/
-
 use hacspec_lib::*;
 
 pub type DimType = usize;
-pub type Scalar = i128;
+pub type Scalar = u128;
 pub type Dims = (DimType, DimType);
 pub type Matrix = (Dims, Seq<Scalar>);
-pub type MatRes = Result<Matrix, u8>;
-pub type ScalRes = Result<Scalar, u8>;
 
-// === Errors === //
-
-const DIMENSION_SEQUENCE_LENGTH_MISMATCH: u8 = 10u8;
-const INDEX_OUT_OF_BOUNDS: u8 = 11u8;
-const SLICE_OUT_OF_BOUNDS: u8 = 12u8;
-const DIMENSION_MISMATCH: u8 = 13u8;
-
-// === External Functions === //
-
-/// Generate new matrix using rows, cols and a seq. Returns an error
-/// if the product of the given dimensions is larger than the length
-/// of the given Seq.
-
-// === External Functions === //
-
-/// Generate new matrix using rows, cols and a seq.
-pub fn new(rows: DimType, cols: DimType, seq: Seq<Scalar>) -> MatRes {
+pub fn new(rows: DimType, cols: DimType, seq: Seq<Scalar>) -> Result<Matrix, ()> {
     if seq.len() > 0 && rows * cols == seq.len() {
-        MatRes::Ok(((rows, cols), seq))
+        Result::<Matrix, ()>::Ok(((rows, cols), seq))
     } else {
-        MatRes::Err(DIMENSION_SEQUENCE_LENGTH_MISMATCH)
+        Result::<Matrix, ()>::Err(())
     }
 }
 
-/// Generate a n*m matrix filled with a given scalar.
-pub fn repeat(n: DimType, m: DimType, scalar: Scalar) -> Matrix {
+pub fn zeros(n: DimType, m: DimType) -> Result<Matrix, ()> {
+    new(n, m, Seq::<Scalar>::new(n * m))
+}
+
+pub fn ones(n: DimType, m: DimType) -> Result<Matrix, ()> {
     let mut ret = Seq::<Scalar>::new(n * m);
 
     for i in 0..n * m {
-        ret[i] = scalar;
+        ret[i] = Scalar::ONE();
     }
 
-    ((n, m), ret)
+    new(n, m, ret)
 }
 
-/// Generate a n*m matrix filled with zeros.
-pub fn zeros(n: DimType, m: DimType) -> Matrix {
-    repeat(n, m, Scalar::ZERO())
-}
+pub fn identity(n: DimType) -> Result<Matrix, ()> {
+    let mut ret = Seq::<Scalar>::new(n * n);
 
-/// Generate a n*m matrix filled with ones.
-pub fn ones(n: DimType, m: DimType) -> Matrix {
-    repeat(n, m, Scalar::ONE())
-}
-
-/// Generates an identity matrix. If the matrix is not square,
-/// the largest square submatrix (starting at the first row and column)
-/// is set to the identity while all other entries are set to zero.
-pub fn identity(n: DimType, m: DimType) -> Matrix {
-    let mut ret = Seq::<Scalar>::new(n * m);
-
-    for i in 0..min(n, m) {
-        let index = i * min(n, m) + i;
+    for i in 0..n {
+        let index = i * n + i;
         ret[index] = Scalar::ONE();
     }
 
-    ((n, m), ret)
+    new(n, n, ret)
 }
 
-/// Gets the index of a matrix. Returns an Error if the given index is out of bounds.
-pub fn index(m: Matrix, i: DimType, j: DimType) -> ScalRes {
+pub fn index(m: Matrix, i: DimType, j: DimType) -> Result<Scalar, ()> {
     let (dim, seq) = m;
     let (rows, cols) = dim;
     let index = i * cols + j;
 
     if index >= rows * cols {
-        ScalRes::Err(INDEX_OUT_OF_BOUNDS)
+        Result::<Scalar, ()>::Err(())
     } else {
-        ScalRes::Ok(seq[index])
+        Result::<Scalar, ()>::Ok(seq[index])
     }
 }
 
-/// Transposes a matrix.
 pub fn transpose(matrix: Matrix) -> Matrix {
     let (dim, seq) = matrix;
     let (rows, cols) = dim;
@@ -107,33 +57,30 @@ pub fn transpose(matrix: Matrix) -> Matrix {
 
     for i in 0..rows {
         for j in 0..cols {
-            let seq_index = i * cols + j;
-            let ret_index = j * rows + i;
-            ret[ret_index] = seq[seq_index]
+            let seq_index = j * rows + i;
+            let index = i * cols + j;
+            ret[seq_index] = seq[index]
         }
     }
 
     ((cols, rows), ret)
 }
 
-/// Returns a matrix slice, given a Matrix and two Dims (pairs of usize),
-/// first Dims pair representing the starting point and second Dims
-/// pair the dimensions. Returns an Error if the given slice is out of bounds.
-pub fn slice(matrix: Matrix, start: Dims, len: Dims) -> MatRes {
+pub fn slice(matrix: Matrix, start: Dims, len: Dims) -> Result<Matrix, ()> {
     let (dim, seq) = matrix;
     let (rows, cols) = dim;
     let (start_row, start_col) = start;
     let (len_rows, len_cols) = len;
     let start_index = start_row * cols + start_col;
     let mut ret = Seq::<Scalar>::new(len_rows * len_cols);
-    let mut res = MatRes::Err(SLICE_OUT_OF_BOUNDS);
+    let mut res = Result::<Matrix, ()>::Err(());
 
     if start_index + len_rows * len_cols <= rows * cols {
         for i in 0..len_rows {
             for j in 0..len_cols {
                 let ret_index = i * len_cols + j;
                 let seq_index = (start_row + i) * cols + (start_col + j);
-                ret[ret_index] = seq[seq_index]
+                ret[ret_index] = seq[seq_index].clone()
             }
         }
 
@@ -143,93 +90,88 @@ pub fn slice(matrix: Matrix, start: Dims, len: Dims) -> MatRes {
     res
 }
 
-/// Scale a matrix with a given scalar.
 pub fn scale(matrix: Matrix, scalar: Scalar) -> Matrix {
     let (dim, seq) = matrix;
     let mut ret = Seq::<Scalar>::new(seq.len());
 
     for i in 0..seq.len() {
-        ret[i] = scalar * seq[i]
+        ret[i] = scalar * seq[i].clone()
     }
 
     (dim, ret)
 }
 
-/// Matrix addition. Returns an Error on dimension mismatch.
-pub fn add(matrix_1: Matrix, matrix_2: Matrix) -> MatRes {
+pub fn add(matrix_1: Matrix, matrix_2: Matrix) -> Result<Matrix, ()> {
     let (m1_dim, m1_s) = matrix_1;
     let (m2_dim, m2_s) = matrix_2;
     let mut ret = Seq::<Scalar>::new(m1_s.len());
-    let mut res = MatRes::Err(DIMENSION_MISMATCH);
+    let mut res = Result::<Matrix, ()>::Err(());
 
     if m1_dim == m2_dim {
         for i in 0..m1_s.len() {
             ret[i] = m1_s[i] + m2_s[i]
         }
-        res = MatRes::Ok((m1_dim, ret))
+        res = Result::<Matrix, ()>::Ok((m1_dim, ret))
     }
     res
 }
 
-/// Matrix subtraction. Returns an Error on dimension mismatch.
-pub fn sub(matrix_1: Matrix, matrix_2: Matrix) -> MatRes {
+pub fn sub(matrix_1: Matrix, matrix_2: Matrix) -> Result<Matrix, ()> {
     let (m1_dim, m1_s) = matrix_1;
     let (m2_dim, m2_s) = matrix_2;
     let mut ret = Seq::<Scalar>::new(m1_s.len());
-    let mut res = MatRes::Err(DIMENSION_MISMATCH);
+    let mut res = Result::<Matrix, ()>::Err(());
 
     if m1_dim == m2_dim {
         for i in 0..m1_s.len() {
-            ret[i] = m1_s[i] - m2_s[i]
+            ret[i] = m1_s[i].clone() - m2_s[i].clone()
         }
-        res = MatRes::Ok((m1_dim, ret))
+        res = Result::<Matrix, ()>::Ok((m1_dim, ret))
     }
     res
 }
 
-/// Component-wise multiplication (Hadamard product). Returns an Error on dimension mismatch.
-pub fn component_mul(matrix_1: Matrix, matrix_2: Matrix) -> MatRes {
+pub fn component_mul(matrix_1: Matrix, matrix_2: Matrix) -> Result<Matrix, ()> {
     let (m1_dim, m1_s) = matrix_1;
     let (m2_dim, m2_s) = matrix_2;
     let mut ret = Seq::<Scalar>::new(m1_s.len());
-    let mut res = MatRes::Err(DIMENSION_MISMATCH);
+    let mut res = Result::<Matrix, ()>::Err(());
 
     if m1_dim == m2_dim {
         for i in 0..m1_s.len() {
-            ret[i] = m1_s[i] * m2_s[i]
+            ret[i] = m1_s[i].clone() * m2_s[i].clone()
         }
-        res = MatRes::Ok((m1_dim, ret))
+        res = Result::<Matrix, ()>::Ok((m1_dim, ret))
     }
     res
 }
 
-/// Matrix multiplication. Returns an Error on dimension mismatch.
-pub fn mul(matrix_1: Matrix, matrix_2: Matrix) -> MatRes {
+pub fn mul(matrix_1: Matrix, matrix_2: Matrix) -> Result<Matrix, ()> {
     let (dim_1, seq_1) = matrix_1;
     let (dim_2, seq_2) = matrix_2;
-    let (l, m) = dim_1;
-    let (m_, n) = dim_2;
-    let mut ret = Seq::<Scalar>::new(l * n);
-    let mut res = MatRes::Err(DIMENSION_MISMATCH);
+    let (m, n) = dim_1;
+    let (n_2, p) = dim_2;
+    let mut ret = Seq::<Scalar>::new(m * p);
+    let mut res = Result::<Matrix, ()>::Err(());
 
-    if m == m_ {
-        for i in 0..l {
-            for j in 0..n {
+    if n == n_2 {
+        for i in 0..m {
+            for j in 0..p {
                 let mut acc = Scalar::ZERO();
-                let index = i * n + j;
+                let index = i * p + j;
 
-                for k in 0..m {
-                    let index_1 = i * m + k;
-                    let index_2 = k * n + j;
+                for k in 0..n {
+                    let index_1 = i * n + k;
+                    let index_2 = k * p + j;
 
-                    acc = acc + seq_1[index_1] * seq_2[index_2];
+                    acc = acc + seq_1[index_1].clone() * seq_2[index_2].clone();
                 }
 
                 ret[index] = acc
             }
         }
 
-        res = new(l, n, ret)
+        res = new(m, p, ret)
     }
 
     res

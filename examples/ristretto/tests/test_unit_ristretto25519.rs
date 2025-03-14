@@ -27,6 +27,14 @@ fn test_unit_scalar_mul_one() {
 }
 
 #[test]
+fn test_unit_scalar_mul_identity() {
+    let point = IDENTITY_POINT();
+    let scalar = Scalar::from_literal(1234);
+    let res = mul(scalar, point);
+    assert!(equals(point, res))
+}
+
+#[test]
 fn test_unit_add_to_self_double() {
     let point = BASE_POINT();
     let double_res = double(point);

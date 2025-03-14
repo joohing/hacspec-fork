@@ -1,6 +1,5 @@
 use hacspec_dev::prelude::*;
 use hacspec_ed25519::*;
-use hacspec_edwards25519::*;
 use hacspec_lib::*;
 use quickcheck::QuickCheck;
 

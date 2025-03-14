@@ -13,4 +13,5 @@ hacspec-lib = { path = "../../lib" }
 [dev-dependencies]
 hacspec-dev = { path = "../../utils/dev" }
 quickcheck = "1"
-nalgebra = "0.31"
+ndarray = "0.15"
+rand = "0.8"

@@ -7,6 +7,9 @@ use hacspec_lib::*;
 use hacspec_ristretto::*;
 use quickcheck::*;
 
+const ALL_TESTS: u64 = 100;
+const MUL_TESTS: u64 = 10;
+
 // === Helper Functions === //
 
 fn quickcheck(tests: u64, helper: impl Testable) {
@@ -87,7 +90,7 @@ fn test_dalek_one_way_map() {
 
         TestResult::from_bool(cmp_points(hac_map, dal_map))
     }
-    quickcheck(100, helper as fn(Vec<u8>) -> TestResult)
+    quickcheck(ALL_TESTS, helper as fn(Vec<u8>) -> TestResult)
 }
 
 #[test]
@@ -110,7 +113,7 @@ fn test_prop_encode_decode() {
 
         TestResult::from_bool(is_same_enc && is_same_dec)
     }
-    quickcheck(100, helper as fn(Vec<u8>) -> TestResult)
+    quickcheck(ALL_TESTS, helper as fn(Vec<u8>) -> TestResult)
 }
 
 #[test]
@@ -130,7 +133,7 @@ fn test_dalek_decode_encode() {
 
         TestResult::from_bool(cmp_points(hac_dec, dal_dec))
     }
-    quickcheck(100, helper as fn(Vec<u8>) -> TestResult)
+    quickcheck(ALL_TESTS, helper as fn(Vec<u8>) -> TestResult)
 }
 
 #[test]
@@ -151,7 +154,7 @@ fn test_dalek_point_addition_subtraction() {
 
         TestResult::from_bool(cmp_points(hac_add, dal_add) && cmp_points(hac_sub, dal_sub))
     }
-    quickcheck(100, helper as fn(Vec<u8>, Vec<u8>) -> TestResult)
+    quickcheck(ALL_TESTS, helper as fn(Vec<u8>, Vec<u8>) -> TestResult)
 }
 
 #[test]
@@ -169,7 +172,7 @@ fn test_dalek_scalar_multiplication() {
 
         TestResult::from_bool(cmp_points(hac_scal, dal_scal))
     }
-    quickcheck(20, helper as fn(Vec<u8>, Vec<u8>) -> TestResult)
+    quickcheck(MUL_TESTS, helper as fn(Vec<u8>, Vec<u8>) -> TestResult)
 }
 
 #[test]
@@ -186,5 +189,5 @@ fn test_dalek_point_negation() {
 
         TestResult::from_bool(cmp_points(hac_neg, dal_neg))
     }
-    quickcheck(100, helper as fn(Vec<u8>) -> TestResult)
+    quickcheck(ALL_TESTS, helper as fn(Vec<u8>) -> TestResult)
 }

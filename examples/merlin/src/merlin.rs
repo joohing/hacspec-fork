@@ -34,7 +34,7 @@ fn encode_usize_as_u32(x: usize) -> Seq<U8> {
 	U32_to_le_bytes(x_U32).to_le_bytes()
 }
 
-// === External Functions === //
+// === Public Functions === //
 
 /// Initialize a new transcript with the supplied label, which is used
 /// as a domain separator.

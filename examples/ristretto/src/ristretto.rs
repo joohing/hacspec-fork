@@ -444,6 +444,12 @@ impl RistrettoPoint {
     pub fn identity() -> Self {
         IDENTITY_POINT()
     }
+
+    pub fn from_uniform_bytes(bytes: &[u8]) -> Self {
+        // Scalar has 256 field size, and 256/8=32
+        let x = Scalar::from_le_bytes(&bytes[..32]);
+        RistrettoPoint::identity() * x
+    }
 }
 
 impl Mul<RistrettoPoint> for Scalar {
@@ -459,6 +465,24 @@ impl Mul<&RistrettoPoint> for Scalar {
 impl Mul<&Scalar> for &RistrettoPoint {
     type Output = RistrettoPoint;
     fn mul(self, s: &Scalar) -> Self::Output { mul(s.clone(), self.clone()) }
+}
+
+impl std::ops::SubAssign<&RistrettoPoint> for RistrettoPoint {
+    fn sub_assign(&mut self, rhs: &Self) {
+        self.0 = self.0 - rhs.0;
+        self.1 = self.1 - rhs.1;
+        self.2 = self.2 - rhs.2;
+        self.3 = self.3 - rhs.3;
+    }
+}
+
+impl std::ops::SubAssign<RistrettoPoint> for RistrettoPoint {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 = self.0 - rhs.0;
+        self.1 = self.1 - rhs.1;
+        self.2 = self.2 - rhs.2;
+        self.3 = self.3 - rhs.3;
+    }
 }
 
 impl std::ops::AddAssign<&RistrettoPoint> for RistrettoPoint {
@@ -479,3 +503,67 @@ impl std::ops::AddAssign<RistrettoPoint> for RistrettoPoint {
         self.3 = self.3 + rhs.3;
     }
 }
+
+impl std::ops::MulAssign<&RistrettoPoint> for RistrettoPoint {
+    fn mul_assign(&mut self, rhs: &Self) {
+        self.0 = self.0 * rhs.0;
+        self.1 = self.1 * rhs.1;
+        self.2 = self.2 * rhs.2;
+        self.3 = self.3 * rhs.3;
+    }
+}
+
+impl std::ops::MulAssign<RistrettoPoint> for RistrettoPoint {
+    fn mul_assign(&mut self, rhs: Self) {
+        let rhs = rhs.clone();
+        self.0 = self.0 * rhs.0;
+        self.1 = self.1 * rhs.1;
+        self.2 = self.2 * rhs.2;
+        self.3 = self.3 * rhs.3;
+    }
+}
+
+impl std::ops::MulAssign<&Scalar> for RistrettoPoint {
+    fn mul_assign(&mut self, rhs: &Scalar) {
+        let res = self.clone() * rhs.clone();
+        self.0 = res.0;
+        self.1 = res.1;
+        self.2 = res.2;
+        self.3 = res.3;
+    }
+}
+
+impl std::ops::MulAssign<Scalar> for RistrettoPoint {
+    fn mul_assign(&mut self, rhs: Scalar) {
+        let res = self.clone() * rhs.clone();
+        self.0 = res.0;
+        self.1 = res.1;
+        self.2 = res.2;
+        self.3 = res.3;
+    }
+}
+
+impl std::ops::SubAssign<&Scalar> for Scalar {
+    fn sub_assign(&mut self, rhs: &Self) {
+        self.0 = self.0 - rhs.0;
+    }
+}
+
+impl std::ops::SubAssign<Scalar> for Scalar {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 = self.0 - rhs.0;
+    }
+}
+
+impl std::ops::AddAssign<&Scalar> for Scalar {
+    fn add_assign(&mut self, rhs: &Self) {
+        self.0 = self.0 + rhs.0;
+    }
+}
+
+impl std::ops::AddAssign<Scalar> for Scalar {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 = self.0 + rhs.0;
+    }
+}
+

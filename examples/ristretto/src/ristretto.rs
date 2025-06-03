@@ -35,7 +35,7 @@ use std::{ops::{Add, Mul}, fmt};
 
 // Ristretto points are represented here by Extended Twisted Edwards Coordinates:
 // https://eprint.iacr.org/2008/522.pdf
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug, Copy)]
 pub struct RistrettoPoint (
     FieldElement,
     FieldElement,
@@ -419,9 +419,15 @@ pub fn mul(k: Scalar, P: RistrettoPoint) -> RistrettoPoint {
     res
 }
 
+// Stuff added by Johnnyboi to make our crate compile (organizes the above logic into trait implementations)
 impl Add for RistrettoPoint {
     type Output = RistrettoPoint;
     fn add(self, rhs: Self) -> Self::Output { add(rhs, self) }
+}
+
+impl Add for &RistrettoPoint {
+    type Output = RistrettoPoint;
+    fn add(self, rhs: &RistrettoPoint) -> Self::Output { add(rhs.clone(), self.clone()) }
 }
 
 impl Mul<Scalar> for RistrettoPoint {
@@ -434,7 +440,6 @@ impl Sub for RistrettoPoint {
     fn sub(self, rhs: Self) -> Self::Output { sub(rhs, self) }
 }
 
-// Stuff added by Johnnyboi to make our crate compile (organizes the above logic into trait implementations)
 impl RistrettoPoint {
     pub fn identity() -> Self {
         IDENTITY_POINT()
@@ -444,4 +449,33 @@ impl RistrettoPoint {
 impl Mul<RistrettoPoint> for Scalar {
     type Output = RistrettoPoint;
     fn mul(self, p: RistrettoPoint) -> Self::Output { mul(self, p) }
+}
+
+impl Mul<&RistrettoPoint> for Scalar {
+    type Output = RistrettoPoint;
+    fn mul(self, p: &RistrettoPoint) -> Self::Output { mul(self, p.clone()) }
+}
+
+impl Mul<&Scalar> for &RistrettoPoint {
+    type Output = RistrettoPoint;
+    fn mul(self, s: &Scalar) -> Self::Output { mul(s.clone(), self.clone()) }
+}
+
+impl std::ops::AddAssign<&RistrettoPoint> for RistrettoPoint {
+    fn add_assign(&mut self, rhs: &Self) {
+        self.0 = self.0 + rhs.0;
+        self.1 = self.1 + rhs.1;
+        self.2 = self.2 + rhs.2;
+        self.3 = self.3 + rhs.3;
+    }
+}
+
+impl std::ops::AddAssign<RistrettoPoint> for RistrettoPoint {
+    fn add_assign(&mut self, rhs: Self) {
+        let rhs = rhs.clone();
+        self.0 = self.0 + rhs.0;
+        self.1 = self.1 + rhs.1;
+        self.2 = self.2 + rhs.2;
+        self.3 = self.3 + rhs.3;
+    }
 }

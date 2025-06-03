@@ -35,7 +35,7 @@ use std::{ops::{Add, Mul}, fmt};
 
 // Ristretto points are represented here by Extended Twisted Edwards Coordinates:
 // https://eprint.iacr.org/2008/522.pdf
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct RistrettoPoint (
     FieldElement,
     FieldElement,
@@ -432,4 +432,16 @@ impl Mul<Scalar> for RistrettoPoint {
 impl Sub for RistrettoPoint {
     type Output = RistrettoPoint;
     fn sub(self, rhs: Self) -> Self::Output { sub(rhs, self) }
+}
+
+// Stuff added by Johnnyboi to make our crate compile (organizes the above logic into trait implementations)
+impl RistrettoPoint {
+    pub fn identity() -> Self {
+        IDENTITY_POINT()
+    }
+}
+
+impl Mul<RistrettoPoint> for Scalar {
+    type Output = RistrettoPoint;
+    fn mul(self, p: RistrettoPoint) -> Self::Output { mul(self, p) }
 }

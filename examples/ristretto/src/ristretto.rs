@@ -31,10 +31,17 @@
 #![allow(unexpected_cfgs)]
 
 use hacspec_lib::*;
+use std::{ops::{Add, Mul}, fmt};
 
 // Ristretto points are represented here by Extended Twisted Edwards Coordinates:
 // https://eprint.iacr.org/2008/522.pdf
-pub type RistrettoPoint = (FieldElement, FieldElement, FieldElement, FieldElement);
+#[derive(Clone)]
+pub struct RistrettoPoint (
+    FieldElement,
+    FieldElement,
+    FieldElement,
+    FieldElement,
+);
 
 type DecodeResult = Result<RistrettoPoint, u8>;
 
@@ -134,7 +141,7 @@ pub fn BASE_POINT() -> RistrettoPoint {
 }
 
 pub fn IDENTITY_POINT() -> RistrettoPoint {
-    (fe(0), fe(1), fe(1), fe(0))
+    RistrettoPoint(fe(0), fe(1), fe(1), fe(0))
 }
 
 // === Helper functions === //
@@ -244,7 +251,7 @@ fn map(t: FieldElement) -> RistrettoPoint {
     let w1 = N * SQRT_AD_MINUS_ONE();
     let w2 = one - s.pow(2u128);
     let w3 = one + s.pow(2u128);
-    (w0 * w3, w2 * w1, w1 * w3, w0 * w2)
+    RistrettoPoint(w0 * w3, w2 * w1, w1 * w3, w0 * w2)
 }
 
 // === External Functions === //
@@ -269,12 +276,12 @@ pub fn one_way_map(b: ByteString) -> RistrettoPoint {
     let P1 = map(r0);
     let P2 = map(r1);
 
-    add(P1, P2)
+    P1 + P2
 }
 
 /// Encodes the given point
 pub fn encode(u: RistrettoPoint) -> RistrettoPointEncoded {
-    let (x0, y0, z0, t0) = u;
+    let RistrettoPoint (x0, y0, z0, t0) = u;
 
     let u1 = (z0 + y0) * (z0 - y0);
     let u2 = x0 * y0;
@@ -331,7 +338,7 @@ pub fn decode(u: RistrettoPointEncoded) -> DecodeResult {
         let t = x * y;
 
         if !(!was_square || is_negative(t) || y == fe(0)) {
-            ret = DecodeResult::Ok((x, y, one, t));
+            ret = DecodeResult::Ok(RistrettoPoint(x, y, one, t));
         }
     }
     ret
@@ -339,16 +346,16 @@ pub fn decode(u: RistrettoPointEncoded) -> DecodeResult {
 
 /// Checks that two points are equivalent.
 pub fn equals(u: RistrettoPoint, v: RistrettoPoint) -> bool {
-    let (x1, y1, _, _) = u;
-    let (x2, y2, _, _) = v;
+    let RistrettoPoint (x1, y1, _, _) = u;
+    let RistrettoPoint (x2, y2, _, _) = v;
     x1 * y2 == x2 * y1 || y1 * y2 == x1 * x2
 }
 
 /// Adds two points together.
 // See section 3.2 of the TECR paper
 pub fn add(u: RistrettoPoint, v: RistrettoPoint) -> RistrettoPoint {
-    let (x1, y1, z1, t1) = u;
-    let (x2, y2, z2, t2) = v;
+    let RistrettoPoint (x1, y1, z1, t1) = u;
+    let RistrettoPoint (x2, y2, z2, t2) = v;
 
     let a = (y1 - x1) * (y2 + x2);
     let b = (y1 + x1) * (y2 - x2);
@@ -363,26 +370,26 @@ pub fn add(u: RistrettoPoint, v: RistrettoPoint) -> RistrettoPoint {
     let t3 = e * h;
     let z3 = f * g;
 
-    (x3, y3, z3, t3)
+    RistrettoPoint (x3, y3, z3, t3)
 }
 
 /// Computes the negation of the given point.
 // See section 3 of the TECR paper
 pub fn neg(u: RistrettoPoint) -> RistrettoPoint {
-    let (x1, y1, z1, t1) = u;
-    (neg_fe(x1), y1, neg_fe(z1), t1)
+    let RistrettoPoint (x1, y1, z1, t1) = u;
+    RistrettoPoint(neg_fe(x1), y1, neg_fe(z1), t1)
 }
 
 /// Subtracts v from u, using negation on v and then adding.
 pub fn sub(u: RistrettoPoint, v: RistrettoPoint) -> RistrettoPoint {
-    add(u, neg(v))
+    u + neg(v)
 }
 
 /// Doubles the given point. Note, this is faster than
 /// adding a point to itself.
 // See section 3.3 of TECR
 pub fn double(u: RistrettoPoint) -> RistrettoPoint {
-    let (x1, y1, z1, _) = u;
+    let RistrettoPoint (x1, y1, z1, _) = u;
 
     let a = x1.pow(2u128);
     let b = y1.pow(2u128);
@@ -396,7 +403,7 @@ pub fn double(u: RistrettoPoint) -> RistrettoPoint {
     let t2 = e * h;
     let z2 = f * g;
 
-    (x2, y2, z2, t2)
+    RistrettoPoint (x2, y2, z2, t2)
 }
 
 /// Performs scalar multiplication on a point.
@@ -405,9 +412,24 @@ pub fn mul(k: Scalar, P: RistrettoPoint) -> RistrettoPoint {
     let mut temp = P;
     for i in 0..256 {
         if k.get_bit(i) == Scalar::from_literal(1u128) {
-            res = add(res, temp)
+            res = res.clone() + temp.clone();
         }
         temp = double(temp)
     }
     res
+}
+
+impl Add for RistrettoPoint {
+    type Output = RistrettoPoint;
+    fn add(self, rhs: Self) -> Self::Output { add(rhs, self) }
+}
+
+impl Mul<Scalar> for RistrettoPoint {
+    type Output = Self;
+    fn mul(self, s: Scalar) -> Self::Output { mul(s, self) }
+}
+
+impl Sub for RistrettoPoint {
+    type Output = RistrettoPoint;
+    fn sub(self, rhs: Self) -> Self::Output { sub(rhs, self) }
 }

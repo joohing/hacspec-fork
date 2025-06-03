@@ -72,6 +72,7 @@
 //! ```
 //!
 
+#![allow(unnecessary_transmutes)]
 #![no_std]
 
 extern crate alloc;

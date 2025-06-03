@@ -1,4 +1,5 @@
 //! This module conveniently exports common subroutines necessary for hacspecs
+#![allow(unused_imports)]
 
 pub use crate::array::*;
 pub use crate::bigint_integers::*;

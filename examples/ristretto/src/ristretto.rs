@@ -28,6 +28,8 @@
 * https://eprint.iacr.org/2008/522
 */
 
+#![allow(unexpected_cfgs)]
+
 use hacspec_lib::*;
 
 // Ristretto points are represented here by Extended Twisted Edwards Coordinates:
